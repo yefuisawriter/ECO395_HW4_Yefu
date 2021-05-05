@@ -1,0 +1,356 @@
+---
+title: "ECO395 HW4"
+author: "Yefu Chen"
+date: "2021/4/25"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+# QUESTION 1
+Run both PCA and a clustering algorithm of your choice on the 11 chemical properties and summarize your results. 
+
+### ANSWER
+The following Figures A and B present the clustering of the PCA and K-mean. Overall, the K-mean clustering makes more sense in this analysis since it categorizes elven chemical properties into several groups based on minimums within-cluster variances. PCA creates several components and assigns weights to elven chemical properties for each component. Results are consistent with this claim. Focusing on the results of PCA (Figures A), it can easily distinguish the boundaries in wine color between components 1 and 2 (FIG A-1), but it is hard in components 1 and 3 (FIG A-2) due to overlaps. Also, it is hard to define the quality of the wine based on PCA because the boundaries of different qualities are not clear (FIG A-3). Focusing on the results of K-mean (Figures B), cluster 3 is high-likely to be red wine, while clusters 1 and 2 are white wine (FIG B-1). FIG B-2 demonstrates that the clusters in qualities. We can define cluster 1 as relatively low-quality wine (quality 4 to 6), cluster 3 as medium-quality wine (quality 4 to 7), and cluster 2 as high-quality wine (quality 4-9). Also, cluster 2 wine has various performances in wine quality, needed further clustering.
+To sum up, in this analysis, the K-mean clustering can make more sense than PCA. The K-mean clustering can distinguish the reds from the whites and the higher from lower quality wines based on unsupervised information.
+
+```{r Q1-1, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+
+Q1 <- read_excel("C:/Users/cheny/Desktop/A4/q1.xlsx")
+
+Q1$quality=factor(Q1$quality)
+
+X = Q1[,1:11]
+X = scale(X, center=TRUE, scale=TRUE)
+
+pc2 = prcomp(X, scale=TRUE)
+loadings = pc2$rotation
+scores = pc2$x
+
+qplot(scores[,1], scores[,2], color=Q1$color, xlab='Component 1', ylab='Component 2')+ggtitle("FIG A-1: Component 1 vs. Component 2 in Color")
+qplot(scores[,2], scores[,3], color=Q1$color, xlab='Component 1', ylab='Component 3')+ggtitle("FIG A-2: Component 1 vs. Component 3 in Color")
+qplot(scores[,1], scores[,2], color=Q1$quality, xlab='Component 1', ylab='Component 3')+ggtitle("FIG A-3: Component 1 vs. Component 3 in quality")
+```
+Figures A. PCA clustering analysis and labels 
+
+```{r Q1-2, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+
+Q1 <- read_excel("C:/Users/cheny/Desktop/A4/q1.xlsx")
+
+Q1$quality=factor(Q1$quality)
+
+X = Q1[,1:11]
+X = scale(X, center=TRUE, scale=TRUE)
+clust1 = kmeans(X, 3, nstart=25)
+
+qplot(color, data=Q1, color=factor(clust1$cluster))+ggtitle("FIG B-1: Components in colors")
+qplot(quality, data=Q1, color=factor(clust1$cluster))+ggtitle("FIG B-2: Components in quality")
+```
+Figures B. Kmean clustering analysis and labels 
+
+# QUESTION 2
+Analyze this data as you see fit, and to prepare a short report for NutrientH20 that identifies any interesting market segments that appear to stand out in their social-media audience. 
+
+### ANSWER
+
+```{r Q2-1, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+library(corrplot)
+library(Hmisc)
+
+Q2 <- read_excel("C:/Users/cheny/Desktop/A4/q2.xlsx")
+
+X = Q2[,2:37]
+X = scale(X, center=TRUE, scale=TRUE)
+
+
+res <- cor(X)
+res=round(res, 2)
+
+col<- colorRampPalette(c("white", "red"))(5)
+heatmap(x = res, col = col, symm = TRUE)
+```
+Figure 2-1. Heatmap analysis of interests
+
+```{r Q2-2, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+library(corrplot)
+library(Hmisc)
+library(corrplot)
+
+Q2 <- read_excel("C:/Users/cheny/Desktop/A4/q2.xlsx")
+
+X = Q2[,2:37]
+X = scale(X, center=TRUE, scale=TRUE)
+
+library(corrplot)
+res <- cor(X)
+res=round(res, 2)
+
+res2 <- rcorr(as.matrix(X))
+corrplot(res2$r, type="upper", order="hclust", 
+         p.mat = res2$P, sig.level = 0.01, insig = "blank")
+```
+Figure 2-2. Correlation analysis of interests
+
+```{r Q2-3, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+library(stargazer)
+
+Q2 <- read_excel("C:/Users/cheny/Desktop/A4/q2.xlsx")
+X = Q2[,2:37]
+X = scale(X, center=TRUE, scale=TRUE)
+
+kmean_withinss <- function(k) {
+    cluster <- kmeans(X, k)
+    return (cluster$tot.withinss)
+}
+kmean_withinss(2)
+max_k <-20 
+wss <- sapply(2:max_k, kmean_withinss)
+elbow <-data.frame(2:max_k, wss)
+ggplot(elbow, aes(x = X2.max_k, y = wss)) +
+    geom_point() +
+    geom_line() +
+    scale_x_continuous(breaks = seq(1, 20, by = 1))
+```
+Figure 2-3. Optimal K searching
+
+```{r Q2-2, echo=FALSE,message=FALSE, results='hide'}
+library(ggplot2)
+library(LICORS) 
+library(foreach)
+library(mosaic)
+library(readxl)
+library(factoextra)
+library(tidyverse)
+library(stargazer)
+library(tidyr)
+require(nnet)
+require(ggplot2)
+require(reshape2)
+library(pander)
+
+install.packages("RColorBrewer")
+Q2 <- read_excel("C:/Users/cheny/Desktop/A4/q2.xlsx")
+X = Q2[,2:37]
+X = scale(X, center=TRUE, scale=TRUE)
+mu = attr(X,"scaled:center")
+sigma = attr(X,"scaled:scale")
+
+pc_cluster_2 <-kmeans(X, 12)
+Q2$cat=pc_cluster_2[["cluster"]]
+
+Q2_MEAN<-Q2 %>% 
+  group_by(cat) %>% 
+  summarise_all(mean)
+df <- Q2_MEAN[ -c(2) ]
+write.csv(df,"C:/Users/cheny/Desktop/q2-result.csv", row.names = FALSE)
+```
+
+# QUESTION 3
+Revisit the notes on association rule mining and the R example on music playlists: playlists.R and playlists.csv. Then use the data on grocery purchases in groceries.txt and find some interesting association rules for these shopping baskets. 
+
+### ANSWER
+The purpose is to explore associations between items that individuals buy from grocery stores. Results indicate that meal purchasing, including meat and vegetables, is the most common daily behavior in this dataset. Also, individuals come to the grocery stores to get fruits, while this purchasing can be separate from meal purchasing. 
+First, I cleaned and organized the dataset in EXCEL through pivot tables to shape it from wide to long. The cleaned dataset has two columns, including consumer ID and items. Fig 3-1 demonstrates the top 20 popular items. Whole milk is the most popular item. There are around 2500 purchases of whole milk in this dataset. The top 5 popular items are other vegetables, rolls/buns, soda, and yogurt, besides whole milk.
+Then, I used “apriori” function to create the rules. Fig 3-2 demonstrates the relationship between top 50 purchases (confidence > 0.05 & support > 0.01). I personally think the confidence should be better than 0.05 in the analysis. After a sort of testing, support > 0.01 performed the best in this modeling. According to Fig 3-2, individuals are most likely buying root vegetables and other vegetables together. Not surprisingly, they tended to buy mean (e.g., beef and chicken) with vegetables simultaneously. Also, another cluster about fruits (pip fruit, tropical fruit and citrus fruit) is separate from the combinations of meat and vegetable. 
+This analysis is interesting and makes sense. It is consistent with common knowledge that people have a different shopping list when they visit grocery stores. Mostly, they come here to purchase things to make a meal, such as vegetables and meat. Moreover, they sometimes visit the grocery stores only for fruits. 
+
+
+```{r Q3, echo=FALSE,message=FALSE, results='hide'}
+library(tidyverse)
+library(arules)  
+library(arulesViz)
+library(igraph)
+playlists_raw = read.csv("C:/users/cheny/Desktop/A4/ECO395M-master/ECO395M-master/data/groceries.csv")
+
+playcounts = playlists_raw %>%
+  group_by(Items) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+
+head(playcounts, 20) %>%
+  ggplot() +
+  geom_col(aes(x=reorder(Items, count), y=count)) + 
+  coord_flip()+ggtitle("FIG 3-1: Items")
+
+
+playlists_raw$ID = factor(playlists_raw$ID)
+playlists = split(x=playlists_raw$Items, f=playlists_raw$ID)
+
+playlists = lapply(playlists, unique)
+playtrans = as(playlists, "transactions")
+musicrules = apriori(playtrans, 
+                     parameter=list(support=.005, confidence=.05, maxlen=2))
+
+sub1 = subset(musicrules, subset=confidence > 0.05 & support > 0.01)
+
+plot(head(sub1, 30, by='lift'), method='graph')
+```
+
+# QUESTION 4
+Use this training data (and this data alone) to build the model. Then apply your model to predict the authorship of the articles in the C50test directory, which is about the same size as the training set. Describe your data pre-processing and analysis pipeline in detail.
+
+### ANSWER
+This study aimed to predict authors based on what they wrote. I applied the lasso logistic regression to achieve this purpose. The whole process included three steps. First, I applied a sort of steps to generate the training and test dataset choosing “SMART” as the stop-word. I used a function to script the names of fifty authors and get the texts what they wrote from the training dataset. Then I applied the same operations in the testing dataset. At last, I converted the texts to training and testing feature matrices. The outcomes of this step are two datasets, and both are lists of strings.
+Then, I captured the names of authors from both datasets, separately as the train labels and test labels. I noticed that the lasso logistic regression cannot deal with the strings, so I created a table, convert the names to numbers. For instance, “AaronPressman” is 1, and “AlanCrosby” is 2. These numbers then were converted to factor variables. The outcome of this steps are two lists of factor variables as the training dependent variable and testing dependent variables in this study.
+At last, I run the lasso logistic regression. I noticed that there were two families in this function, Gaussian and Poisson. I separately ran the regression choosing two families and compared the results. Figures 4-1 demonstrate the predictions versus actual numbers of the two models. Obviously, the Poisson model's performance is much better than the Gaussian model since the variances are much smaller. For instance, when predicting author “1”, the Gaussian model predicted it as numbers from -25 to 20, and the Poisson model predicted it as numbers from 2 to 20.
+
+```{r Q4, echo=FALSE,message=FALSE, results='hide'}
+library(tidyverse)
+library(tm)
+library(gamlr)
+library(SnowballC)
+
+readerPlain = function(fname){
+  readPlain(elem=list(content=readLines(fname)), 
+            id=fname, language='en') }
+
+train_dirs = Sys.glob('C:/Users/cheny/Desktop/A4/ECO395M-master/ECO395M-master/data/ReutersC50/C50train/*')
+file_list = NULL
+labels_train = NULL
+
+for(author in train_dirs) {
+  author_name = substring(author, first=82)
+  files_to_add = Sys.glob(paste0(author, '/*.txt'))
+  file_list = append(file_list, files_to_add)
+  labels_train = append(labels_train, rep(author_name, length(files_to_add)))
+}
+
+corpus_train = Corpus(DirSource(train_dirs)) 
+corpus_train = corpus_train %>% tm_map(., content_transformer(tolower)) %>% 
+  tm_map(., content_transformer(removeNumbers)) %>% 
+  tm_map(., content_transformer(removeNumbers)) %>% 
+  tm_map(., content_transformer(removePunctuation)) %>%
+  tm_map(., content_transformer(stripWhitespace)) %>%
+  tm_map(., content_transformer(removeWords), stopwords("SMART"))
+
+## Same operations with the testing corpus
+test_dirs = Sys.glob('C:/Users/cheny/Desktop/A4/ECO395M-master/ECO395M-master/data/ReutersC50/C50test/*')
+file_list = NULL
+labels_test = NULL
+
+for(author in test_dirs) {
+  author_name = substring(author, first=81)
+  files_to_add = Sys.glob(paste0(author, '/*.txt'))
+  file_list = append(file_list, files_to_add)
+  labels_test = append(labels_test, rep(author_name, length(files_to_add)))
+}
+
+corpus_test = Corpus(DirSource(test_dirs)) 
+
+corpus_test = corpus_test %>% tm_map(., content_transformer(tolower)) %>% 
+  tm_map(., content_transformer(removeNumbers)) %>% 
+  tm_map(., content_transformer(removePunctuation)) %>%
+  tm_map(., content_transformer(stripWhitespace)) %>%
+  tm_map(., content_transformer(removeWords), stopwords("SMART")) 
+
+
+# create training and testing feature matrices
+DTM_train = DocumentTermMatrix(corpus_train)
+DTM_train # some basic summary statistics
+
+
+# restrict test-set vocabulary to the terms in DTM_train
+DTM_test = DocumentTermMatrix(corpus_test,
+                              control = list(dictionary=Terms(DTM_train)))
+
+# outcome vector
+y_train = labels_train
+y_test = labels_test
+
+
+#train------
+library(reshape)
+name = unique(y_train)
+(x <- structure(c(1:50),names=name))
+dfr <- melt(x)
+library(data.table)
+setDT(dfr, keep.rownames = TRUE)[]
+(dfr)
+
+
+
+test_name_matrix_train <- data.frame(matrix(unlist(y_train), nrow=length(y_train), byrow=TRUE))
+colnames(test_name_matrix_train) <- c("names")
+test_name_matrix_train$value=0
+test_name_matrix_train$value=dfr$value[match(test_name_matrix_train$names,dfr$rn)]
+
+#test------
+library(reshape)
+name = unique(y_test)
+(x <- structure(c(1:50),names=name))
+dfr <- melt(x)
+library(data.table)
+setDT(dfr, keep.rownames = TRUE)[]
+(dfr)
+
+
+test_name_matrix_test <- data.frame(matrix(unlist(y_test), nrow=length(y_test), byrow=TRUE))
+colnames(test_name_matrix_test) <- c("names")
+test_name_matrix_test$value=0
+test_name_matrix_test$value=dfr$value[match(test_name_matrix_test$names,dfr$rn)]
+
+
+test_name_matrix_train$value=factor(test_name_matrix_train$value)
+test_name_matrix_test$value=factor(test_name_matrix_test$value)
+
+# lasso logistic regression for document classification
+logit1 = cv.gamlr(DTM_train, test_name_matrix_train$value, family='gaussian', nfold=10)
+
+plot(coef(logit1),main="Coefficients distibution (Gaussian and nfold=10)",
+     ylab="Coefficients")
+
+yhat_test = predict(logit1, DTM_test, type='response')
+
+boxplot(as.numeric(yhat_test) ~ test_name_matrix_test$value,
+        main = "Actual authors vs. Predicted authors (Gaussian)",
+        xlab = "Actual authors",
+        ylab = "Predicted authors")
+
+# lasso logistic regression for document classification2
+logit2 = cv.gamlr(DTM_train, test_name_matrix_train$value, family='poisson', nfold=10)
+plot(coef(logit2),main="Coefficients distibution (Poisson and nfold=10)",
+     ylab="Coefficients")
+yhat_test2 = predict(logit2, DTM_test, type='response')
+
+boxplot(as.numeric(yhat_test2) ~ test_name_matrix_test$value,
+        main = "Actual authors vs. Predicted authors (Poisson)",
+        xlab = "Actual authors",
+        ylab = "Predicted authors")
+```
